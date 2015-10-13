@@ -1,6 +1,7 @@
 package cyk
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -26,9 +27,9 @@ type MatrixIndicator struct {
 type MatrixResult map[MatrixIndicator][]string
 
 type CYK struct {
-	Grammars   []Grammar
-	CYKResult  MatrixResult
-	EvalString string
+	Grammars    []Grammar
+	CYKResult   MatrixResult
+	InputString string
 }
 
 func NewCYK() *CYK {
@@ -39,7 +40,7 @@ func NewCYK() *CYK {
 
 // Find terminal assign variable
 // ex: A->a  using `a` find A
-func (c *CYK) terminalAssign(terminal string) []string {
+func (c *CYK) findTerminalAssign(terminal string) []string {
 	var retList []string
 	for _, targetG := range c.Grammars {
 		for _, rSymbol := range targetG.RightSymbol {
@@ -50,6 +51,39 @@ func (c *CYK) terminalAssign(terminal string) []string {
 	}
 
 	return retList
+}
+func testEq(a, b []string) bool {
+
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (c *CYK) findVariableAssign(symbol []string) string {
+	for _, targetG := range c.Grammars {
+		fmt.Println(" grammarR=", targetG.RightSymbol, " symbol=", symbol)
+		if testEq(symbol, targetG.RightSymbol) {
+			return targetG.LeftSymbol
+		}
+	}
+
+	return ""
 }
 
 //To eval if string is terminal not variable
@@ -71,18 +105,68 @@ func (c *CYK) Eval(input string) bool {
 	return c.evalCYKResult()
 }
 
+func (c *CYK) getResultMatrix(x, y int) ([]string, error) {
+	val, ok := c.CYKResult[MatrixIndicator{X_axi: x, Y_axi: y}]
+	if ok {
+		return val, nil
+	} else {
+		fmt.Println("index x=", x, " y=", y, " is not exist!.")
+		return nil, errors.New("Not exist!")
+	}
+}
+
+func (c *CYK) setResultMatrix(x, y int, val []string) {
+	c.CYKResult[MatrixIndicator{X_axi: x, Y_axi: y}] = val
+}
+
 // Run CYK algorithm
 func (c *CYK) runCYK(input string) {
-	c.EvalString = input
+	c.InputString = input
 	//Start to calculate X_11, X_22, X_33
 	for i := 0; i < len(input); i++ {
 		//string is zero-base
-		variable := c.terminalAssign(string(input[i]))
+		variable := c.findTerminalAssign(string(input[i]))
 		//Matrix indicator is 1-base
-		c.CYKResult[MatrixIndicator{X_axi: i + 1, Y_axi: i + 1}] = variable
+		c.setResultMatrix(i, i, variable)
 	}
 
-	//for i in
+	//start triangle calculate
+	for loop := 1; loop <= len(c.InputString); loop++ {
+		for i := 0; i < len(c.InputString)-loop; i++ {
+			j := i + loop
+			variables, err := c.getResultMatrix(i, i+loop-1)
+			fmt.Println("find on i=", i, " j=", i+loop-1, " val=", variables)
+			if err != nil {
+				fmt.Println("error on i=", i, " j=", j)
+				return
+			}
+			fmt.Println("variables = ", variables)
+			firstV := variables[0]
+			secondVal, _ := c.getResultMatrix(j, j)
+			var retStr1 []string
+			var retStr2 []string
+			retStr1 = append(retStr1, firstV)
+			retStr1 = append(retStr1, secondVal[1])
+			retStr2 = append(retStr2, firstV)
+			retStr2 = append(retStr2, secondVal[0])
+
+			fmt.Println("i=", i, " j=", j, " string1:", retStr1, " string2:", retStr2)
+
+			var result []string
+			leftFirst := c.findVariableAssign(retStr1)
+			if leftFirst != "" {
+				result = append(result, leftFirst)
+			}
+
+			leftSec := c.findVariableAssign(retStr1)
+			if leftSec != "" {
+				result = append(result, leftSec)
+			}
+
+			fmt.Println("target Left i=", i, " j=", j, " result=", result)
+			c.setResultMatrix(i, j, result)
+		}
+	}
 }
 
 // Eval CYK result and make sure latest CYK Result only contain variable not assign to terminal
@@ -91,6 +175,7 @@ func (c *CYK) evalCYKResult() bool {
 	return false
 }
 
+// Print out the triangle result on CYK
 func (c *CYK) PrintResult() {
 
 	if len(c.CYKResult) == 0 {
@@ -99,9 +184,14 @@ func (c *CYK) PrintResult() {
 	}
 
 	fmt.Printf("1:")
-	for i := 1; i <= len(c.EvalString); i++ {
+	for i := 0; i < len(c.InputString); i++ {
 		fmt.Printf("\tX%d%d:{", i, i)
-		results := c.CYKResult[MatrixIndicator{X_axi: i, Y_axi: i}]
+
+		results, err := c.getResultMatrix(i, i)
+		if err != nil {
+			fmt.Println("Empty result")
+			return
+		}
 		for _, str := range results {
 			fmt.Printf("%s,", str)
 		}
