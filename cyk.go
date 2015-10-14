@@ -30,10 +30,11 @@ type CYK struct {
 	Grammars    []Grammar
 	CYKResult   MatrixResult
 	InputString string
+	StartSymbol string
 }
 
-func NewCYK() *CYK {
-	newCYK := &CYK{}
+func NewCYK(startSymbol string) *CYK {
+	newCYK := &CYK{StartSymbol: startSymbol}
 	newCYK.CYKResult = make(map[MatrixIndicator][]string)
 	return newCYK
 }
@@ -52,6 +53,7 @@ func (c *CYK) findTerminalAssign(terminal string) []string {
 
 	return retList
 }
+
 func testEq(a, b []string) bool {
 
 	if a == nil && b == nil {
@@ -77,7 +79,7 @@ func testEq(a, b []string) bool {
 
 func (c *CYK) findVariableAssign(symbol []string) string {
 	for _, targetG := range c.Grammars {
-		fmt.Println(" grammarR=", targetG.RightSymbol, " symbol=", symbol)
+		//fmt.Println(" grammarR=", targetG.RightSymbol, " symbol=", symbol)
 		if testEq(symbol, targetG.RightSymbol) {
 			return targetG.LeftSymbol
 		}
@@ -135,12 +137,10 @@ func (c *CYK) runCYK(input string) {
 		for i := 0; i < len(c.InputString)-loop; i++ {
 			j := i + loop
 			variables, err := c.getResultMatrix(i, i+loop-1)
-			fmt.Println("find on i=", i, " j=", i+loop-1, " val=", variables)
 			if err != nil {
 				fmt.Println("error on i=", i, " j=", j)
 				return
 			}
-			fmt.Println("variables = ", variables)
 			firstV := variables[0]
 			secondVal, _ := c.getResultMatrix(j, j)
 			var retStr1 []string
@@ -150,20 +150,16 @@ func (c *CYK) runCYK(input string) {
 			retStr2 = append(retStr2, firstV)
 			retStr2 = append(retStr2, secondVal[0])
 
-			fmt.Println("i=", i, " j=", j, " string1:", retStr1, " string2:", retStr2)
-
 			var result []string
 			leftFirst := c.findVariableAssign(retStr1)
 			if leftFirst != "" {
 				result = append(result, leftFirst)
 			}
 
-			leftSec := c.findVariableAssign(retStr1)
+			leftSec := c.findVariableAssign(retStr2)
 			if leftSec != "" {
 				result = append(result, leftSec)
 			}
-
-			fmt.Println("target Left i=", i, " j=", j, " result=", result)
 			c.setResultMatrix(i, j, result)
 		}
 	}
@@ -172,7 +168,11 @@ func (c *CYK) runCYK(input string) {
 // Eval CYK result and make sure latest CYK Result only contain variable not assign to terminal
 // ex: latest result is "S" which S->AB
 func (c *CYK) evalCYKResult() bool {
-	return false
+	finalResult, err := c.getResultMatrix(0, len(c.InputString)-1)
+	if err != nil {
+		return false
+	}
+	return len(finalResult) == 1 && finalResult[0] == c.StartSymbol
 }
 
 // Print out the triangle result on CYK
@@ -185,17 +185,33 @@ func (c *CYK) PrintResult() {
 
 	fmt.Printf("1:")
 	for i := 0; i < len(c.InputString); i++ {
-		fmt.Printf("\tX%d%d:{", i, i)
-
-		results, err := c.getResultMatrix(i, i)
-		if err != nil {
-			fmt.Println("Empty result")
-			return
-		}
-		for _, str := range results {
-			fmt.Printf("%s,", str)
-		}
-		fmt.Printf("}")
+		c.printResultMatrixElement(i, i)
 	}
 	fmt.Printf("\n")
+
+	lineIndex := 2
+	for loop := 1; loop < len(c.InputString); loop++ {
+
+		fmt.Printf("%d:", lineIndex)
+		for i := 0; i < len(c.InputString)-loop; i++ {
+			j := i + loop
+			c.printResultMatrixElement(i, j)
+		}
+		fmt.Printf("\n")
+		lineIndex = lineIndex + 1
+	}
+}
+
+func (c *CYK) printResultMatrixElement(i, j int) {
+	fmt.Printf("\tX%d%d:{", i+1, j+1)
+
+	results, err := c.getResultMatrix(i, j)
+	if err != nil {
+		fmt.Println("Empty result")
+		return
+	}
+	for _, str := range results {
+		fmt.Printf("%s,", str)
+	}
+	fmt.Printf("}")
 }
