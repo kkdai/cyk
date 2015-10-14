@@ -77,15 +77,16 @@ func testEq(a, b []string) bool {
 	return true
 }
 
-func (c *CYK) findVariableAssign(symbol []string) string {
+func (c *CYK) findVariableAssign(symbol []string) []string {
+	var retSlice []string
 	for _, targetG := range c.Grammars {
 		//fmt.Println(" grammarR=", targetG.RightSymbol, " symbol=", symbol)
 		if testEq(symbol, targetG.RightSymbol) {
-			return targetG.LeftSymbol
+			retSlice = append(retSlice, targetG.LeftSymbol)
 		}
 	}
 
-	return ""
+	return retSlice
 }
 
 //To eval if string is terminal not variable
@@ -126,9 +127,7 @@ func (c *CYK) runCYK(input string) {
 	c.InputString = input
 	//Start to calculate X_11, X_22, X_33
 	for i := 0; i < len(input); i++ {
-		//string is zero-base
 		variable := c.findTerminalAssign(string(input[i]))
-		//Matrix indicator is 1-base
 		c.setResultMatrix(i, i, variable)
 	}
 
@@ -136,33 +135,35 @@ func (c *CYK) runCYK(input string) {
 	for loop := 1; loop <= len(c.InputString); loop++ {
 		for i := 0; i < len(c.InputString)-loop; i++ {
 			j := i + loop
-			variables, err := c.getResultMatrix(i, i+loop-1)
-			if err != nil {
-				fmt.Println("error on i=", i, " j=", j)
-				return
-			}
-			firstV := variables[0]
+			firstVal, _ := c.getResultMatrix(i, i+loop-1)
 			secondVal, _ := c.getResultMatrix(j, j)
-			var retStr1 []string
-			var retStr2 []string
-			retStr1 = append(retStr1, firstV)
-			retStr1 = append(retStr1, secondVal[1])
-			retStr2 = append(retStr2, firstV)
-			retStr2 = append(retStr2, secondVal[0])
+			aryProduct := arrayProduction(firstVal, secondVal)
 
 			var result []string
-			leftFirst := c.findVariableAssign(retStr1)
-			if leftFirst != "" {
-				result = append(result, leftFirst)
+			for _, symbol := range aryProduct {
+
+				targetSlice := c.findVariableAssign(symbol)
+				for _, target := range targetSlice {
+					result = append(result, target)
+				}
 			}
 
-			leftSec := c.findVariableAssign(retStr2)
-			if leftSec != "" {
-				result = append(result, leftSec)
-			}
 			c.setResultMatrix(i, j, result)
 		}
 	}
+}
+
+func arrayProduction(ary1, ary2 []string) [][]string {
+	var ret [][]string
+	for _, i := range ary1 {
+		for _, j := range ary2 {
+			var restr []string
+			restr = append(restr, i)
+			restr = append(restr, j)
+			ret = append(ret, restr)
+		}
+	}
+	return ret
 }
 
 // Eval CYK result and make sure latest CYK Result only contain variable not assign to terminal
@@ -172,12 +173,18 @@ func (c *CYK) evalCYKResult() bool {
 	if err != nil {
 		return false
 	}
-	return len(finalResult) == 1 && finalResult[0] == c.StartSymbol
+
+	for _, ret := range finalResult {
+		if ret == c.StartSymbol {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Print out the triangle result on CYK
 func (c *CYK) PrintResult() {
-
 	if len(c.CYKResult) == 0 {
 		fmt.Println("We still not calculate CYK or no result...")
 		return
@@ -211,7 +218,9 @@ func (c *CYK) printResultMatrixElement(i, j int) {
 		return
 	}
 	for _, str := range results {
-		fmt.Printf("%s,", str)
+		if len(str) != 0 {
+			fmt.Printf("%s,", str)
+		}
 	}
 	fmt.Printf("}")
 }
