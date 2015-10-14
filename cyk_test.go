@@ -46,7 +46,7 @@ func TestSecondCYK(t *testing.T) {
 
 	//Should be false, fianl result is {A}
 	result := cyk.Eval("baaba")
-	if result {
+	if !result {
 		t.Errorf("CYK error, expect false, got true\n")
 	}
 	fmt.Println("Result:", result)

@@ -52,29 +52,8 @@ func (c *CYK) findTerminalAssign(terminal string) string {
 	return retList
 }
 
-func testEq(a, b []string) bool {
-
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
+// Find variable assign, difference wit find terminal it need equal not contains
+// S -> AB, only use "AB" -> "S"
 func (c *CYK) findVariableAssign(symbol string) string {
 	var retSlice string
 	for _, targetG := range c.Grammars {
@@ -84,7 +63,6 @@ func (c *CYK) findVariableAssign(symbol string) string {
 			//fmt.Println("get Left=", retSlice)
 		}
 	}
-
 	return retSlice
 }
 
@@ -112,7 +90,7 @@ func (c *CYK) getResultMatrix(x, y int) (string, error) {
 	if ok {
 		return val, nil
 	} else {
-		fmt.Println("index x=", x, " y=", y, " is not exist!.")
+		//fmt.Println("index x=", x, " y=", y, " is not exist!.")
 		return "", errors.New("Not exist!")
 	}
 }
@@ -134,15 +112,26 @@ func (c *CYK) runCYK(input string) {
 	for loop := 1; loop <= len(c.InputString); loop++ {
 		for i := 0; i < len(c.InputString)-loop; i++ {
 			j := i + loop
-			firstVal, _ := c.getResultMatrix(i, i+loop-1)
-			secondVal, _ := c.getResultMatrix(j, j)
-			aryProduct := arrayProduction(firstVal, secondVal)
+			//fmt.Println("i=", i, " j=", j)
+			var totalTargets []string
+			for k := 1; k <= j; k++ {
+
+				firstVal, _ := c.getResultMatrix(i, i+k-1)
+				secondVal, _ := c.getResultMatrix(i+k, j)
+				products := arrayProduction(firstVal, secondVal)
+				for _, v := range products {
+					totalTargets = append(totalTargets, v)
+				}
+				//fmt.Println("total =", totalTargets)
+			}
 
 			var result string
-			for _, symbol := range aryProduct {
+			for _, symbol := range totalTargets {
 				//fmt.Println("i=", i, " j=", j, " symbol=", symbol)
 				targetSymbol := c.findVariableAssign(symbol)
-				result = fmt.Sprintf("%s%s", result, targetSymbol)
+				if !strings.Contains(result, targetSymbol) {
+					result = fmt.Sprintf("%s%s", result, targetSymbol)
+				}
 			}
 
 			c.setResultMatrix(i, j, result)
@@ -169,6 +158,7 @@ func (c *CYK) evalCYKResult() bool {
 		return false
 	}
 
+	//fmt.Println("final:", finalResult)
 	if strings.Contains(finalResult, c.StartSymbol) {
 		return true
 	}
