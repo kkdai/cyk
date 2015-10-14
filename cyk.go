@@ -13,7 +13,7 @@ import (
 //     RightSymbol could be terminal or variables
 type Grammar struct {
 	LeftSymbol  string
-	RightSymbol []string
+	RightSymbol string
 }
 
 //We use matrix to store our CYK result and maniplate it
@@ -24,7 +24,7 @@ type MatrixIndicator struct {
 }
 
 //Using map to handle matrix result
-type MatrixResult map[MatrixIndicator][]string
+type MatrixResult map[MatrixIndicator]string
 
 type CYK struct {
 	Grammars    []Grammar
@@ -35,19 +35,17 @@ type CYK struct {
 
 func NewCYK(startSymbol string) *CYK {
 	newCYK := &CYK{StartSymbol: startSymbol}
-	newCYK.CYKResult = make(map[MatrixIndicator][]string)
+	newCYK.CYKResult = make(map[MatrixIndicator]string)
 	return newCYK
 }
 
 // Find terminal assign variable
 // ex: A->a  using `a` find A
-func (c *CYK) findTerminalAssign(terminal string) []string {
-	var retList []string
+func (c *CYK) findTerminalAssign(terminal string) string {
+	var retList string
 	for _, targetG := range c.Grammars {
-		for _, rSymbol := range targetG.RightSymbol {
-			if rSymbol == terminal {
-				retList = append(retList, targetG.LeftSymbol)
-			}
+		if strings.Contains(targetG.RightSymbol, terminal) {
+			retList = fmt.Sprintf("%s%s", retList, targetG.LeftSymbol)
 		}
 	}
 
@@ -77,12 +75,13 @@ func testEq(a, b []string) bool {
 	return true
 }
 
-func (c *CYK) findVariableAssign(symbol []string) []string {
-	var retSlice []string
+func (c *CYK) findVariableAssign(symbol string) string {
+	var retSlice string
 	for _, targetG := range c.Grammars {
 		//fmt.Println(" grammarR=", targetG.RightSymbol, " symbol=", symbol)
-		if testEq(symbol, targetG.RightSymbol) {
-			retSlice = append(retSlice, targetG.LeftSymbol)
+		if symbol == targetG.RightSymbol {
+			retSlice = fmt.Sprintf("%s%s", retSlice, targetG.LeftSymbol)
+			//fmt.Println("get Left=", retSlice)
 		}
 	}
 
@@ -97,7 +96,7 @@ func (c *CYK) isTerminal(testString string) bool {
 //Insert grammar in this CYK
 // Ex: S->{AB}  InputGrammar("S", "A", "B")
 // Please note: Uppercase is variable, Lowercase is terminal
-func (c *CYK) InputGrammar(leftSymbol string, rightSymbols ...string) {
+func (c *CYK) InputGrammar(leftSymbol string, rightSymbols string) {
 	newGrammar := Grammar{LeftSymbol: leftSymbol, RightSymbol: rightSymbols}
 	c.Grammars = append(c.Grammars, newGrammar)
 }
@@ -108,17 +107,17 @@ func (c *CYK) Eval(input string) bool {
 	return c.evalCYKResult()
 }
 
-func (c *CYK) getResultMatrix(x, y int) ([]string, error) {
+func (c *CYK) getResultMatrix(x, y int) (string, error) {
 	val, ok := c.CYKResult[MatrixIndicator{X_axi: x, Y_axi: y}]
 	if ok {
 		return val, nil
 	} else {
 		fmt.Println("index x=", x, " y=", y, " is not exist!.")
-		return nil, errors.New("Not exist!")
+		return "", errors.New("Not exist!")
 	}
 }
 
-func (c *CYK) setResultMatrix(x, y int, val []string) {
+func (c *CYK) setResultMatrix(x, y int, val string) {
 	c.CYKResult[MatrixIndicator{X_axi: x, Y_axi: y}] = val
 }
 
@@ -139,13 +138,11 @@ func (c *CYK) runCYK(input string) {
 			secondVal, _ := c.getResultMatrix(j, j)
 			aryProduct := arrayProduction(firstVal, secondVal)
 
-			var result []string
+			var result string
 			for _, symbol := range aryProduct {
-
-				targetSlice := c.findVariableAssign(symbol)
-				for _, target := range targetSlice {
-					result = append(result, target)
-				}
+				//fmt.Println("i=", i, " j=", j, " symbol=", symbol)
+				targetSymbol := c.findVariableAssign(symbol)
+				result = fmt.Sprintf("%s%s", result, targetSymbol)
 			}
 
 			c.setResultMatrix(i, j, result)
@@ -153,13 +150,11 @@ func (c *CYK) runCYK(input string) {
 	}
 }
 
-func arrayProduction(ary1, ary2 []string) [][]string {
-	var ret [][]string
-	for _, i := range ary1 {
-		for _, j := range ary2 {
-			var restr []string
-			restr = append(restr, i)
-			restr = append(restr, j)
+func arrayProduction(str1, str2 string) []string {
+	var ret []string
+	for i := 0; i < len(str1); i++ {
+		for j := 0; j < len(str2); j++ {
+			restr := fmt.Sprintf("%s%s", string(str1[i]), string(str2[j]))
 			ret = append(ret, restr)
 		}
 	}
@@ -174,10 +169,8 @@ func (c *CYK) evalCYKResult() bool {
 		return false
 	}
 
-	for _, ret := range finalResult {
-		if ret == c.StartSymbol {
-			return true
-		}
+	if strings.Contains(finalResult, c.StartSymbol) {
+		return true
 	}
 
 	return false
@@ -217,9 +210,10 @@ func (c *CYK) printResultMatrixElement(i, j int) {
 		fmt.Println("Empty result")
 		return
 	}
-	for _, str := range results {
-		if len(str) != 0 {
-			fmt.Printf("%s,", str)
+	for index, _ := range results {
+		fmt.Printf("%s", string(results[index]))
+		if index < len(results)-1 {
+			fmt.Printf(",")
 		}
 	}
 	fmt.Printf("}")

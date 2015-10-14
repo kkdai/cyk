@@ -6,17 +6,17 @@ import (
 )
 
 func TestArrayProduction(t *testing.T) {
-	ary1 := []string{"A", "C"}
-	ary2 := []string{"B", "C"}
+	ary1 := "AC"
+	ary2 := "BC"
 	fmt.Println(arrayProduction(ary1, ary2))
 }
 
 //Sample from Coursera Automata
 func TestFirstCYK(t *testing.T) {
 	cyk := NewCYK("S")
-	cyk.InputGrammar("S", "A", "B")
-	cyk.InputGrammar("A", "B", "C")
-	cyk.InputGrammar("B", "A", "C")
+	cyk.InputGrammar("S", "AB")
+	cyk.InputGrammar("A", "BC")
+	cyk.InputGrammar("B", "AC")
 	cyk.InputGrammar("A", "a")
 	cyk.InputGrammar("B", "b")
 	cyk.InputGrammar("C", "a")
@@ -35,13 +35,13 @@ func TestFirstCYK(t *testing.T) {
 //Sample from Wiki http://web.cs.ucdavis.edu/~rogaway/classes/120/winter12/CYK.pdf
 func TestSecondCYK(t *testing.T) {
 	cyk := NewCYK("S")
-	cyk.InputGrammar("S", "A", "B")
-	cyk.InputGrammar("S", "B", "C")
-	cyk.InputGrammar("A", "B", "A")
+	cyk.InputGrammar("S", "AB")
+	cyk.InputGrammar("S", "BC")
+	cyk.InputGrammar("A", "BA")
 	cyk.InputGrammar("A", "a")
-	cyk.InputGrammar("B", "C", "C")
+	cyk.InputGrammar("B", "CC")
 	cyk.InputGrammar("B", "b")
-	cyk.InputGrammar("C", "A", "B")
+	cyk.InputGrammar("C", "AB")
 	cyk.InputGrammar("C", "a")
 
 	//Should be false, fianl result is {A}
@@ -57,11 +57,11 @@ func TestSecondCYK(t *testing.T) {
 //Sample from http://www.cs.bgu.ac.il/~michaluz/seminar/CKY1.pdf
 func TestThirdCYK(t *testing.T) {
 	cyk := NewCYK("S")
-	cyk.InputGrammar("S", "A", "B")
-	cyk.InputGrammar("S", "X", "B")
-	cyk.InputGrammar("T", "A", "B")
-	cyk.InputGrammar("T", "X", "B")
-	cyk.InputGrammar("X", "A", "T")
+	cyk.InputGrammar("S", "AB")
+	cyk.InputGrammar("S", "XB")
+	cyk.InputGrammar("T", "AB")
+	cyk.InputGrammar("T", "XB")
+	cyk.InputGrammar("X", "AT")
 	cyk.InputGrammar("A", "a")
 	cyk.InputGrammar("B", "b")
 
