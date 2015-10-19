@@ -9,15 +9,14 @@ import (
 //Grammar is present the CFG grammars
 //ex:  S-> AB
 //     LeftSymbol: S
-//     RightSymbol[0]: A, RightSymbol[1]: B
-//     RightSymbol could be terminal or variables
+//     RightSymbol: "AB"
 type Grammar struct {
 	LeftSymbol  string
 	RightSymbol string
 }
 
 //We use matrix to store our CYK result and maniplate it
-//ex: X_11 -> A ==> map[MatrixIndicator{ X_axi: 1, Y_axi: 1}] = []string{"A"}
+//ex: X_11 -> A ==> map[MatrixIndicator{ X_axi: 1, Y_axi: 1}] = "A"
 type MatrixIndicator struct {
 	X_axi int
 	Y_axi int
@@ -72,7 +71,7 @@ func (c *CYK) isTerminal(testString string) bool {
 }
 
 //Insert grammar in this CYK
-// Ex: S->{AB}  InputGrammar("S", "A", "B")
+// Ex: S->{AB}  InputGrammar("S", "AB")
 // Please note: Uppercase is variable, Lowercase is terminal
 func (c *CYK) InputGrammar(leftSymbol string, rightSymbols string) {
 	newGrammar := Grammar{LeftSymbol: leftSymbol, RightSymbol: rightSymbols}
